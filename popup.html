@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Peasy Sync</title>
+    <style>
+        html {
+            border: 2px solid #53743D;
+            height: 98.2%; /* Forcing bottom border */
+        }
+        body {
+            background-color: #FDF7E7;
+            font-family: sans-serif;
+            padding: 0 5px 5px;
+            width: 150px;
+        }
+        .logo {
+            text-align: center;
+        }
+        img {
+            max-height: 3rem;
+            margin: auto;
+        }
+        h3 {
+            color: #53743D;
+            margin: 0 0 5px;
+            text-align: center;
+        }
+        button {
+            margin-top: 5px;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: #4caf50;
+            color: white;
+            cursor: pointer;
+        }
+        button.restore {
+            background: #2196f3;
+        }
+        div.status {
+            padding: 5px;
+            margin-top: 10px;
+            color: #53743D;
+        }
+    </style>
+</head>
+<body>
+<div class="logo">
+    <img src="icons/banner.png" alt="PeasySync">
+</div>
+<h3>PeasySync</h3>
+<button id="backup">Backup Bookmarks</button>
+<button id="restore" class="restore">Restore Bookmarks</button>
+<div class="status">Status: <span id="status">Idle</span></div>
+<script src="popup.js"></script>
+</body>
+</html>
