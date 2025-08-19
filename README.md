@@ -1,5 +1,7 @@
 # PeasySync
 
+![PeasySync](assets/feature-image.jpg)
+
 A simple Chrome/Brave extension to back up and restore your bookmarks using Google Drive.
 
 ## Setup
