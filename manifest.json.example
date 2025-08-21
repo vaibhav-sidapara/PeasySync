@@ -16,10 +16,8 @@
   },
   "permissions": [
     "bookmarks",
-    "storage",
     "identity",
-    "notifications",
-    "scripting"
+    "storage"
   ],
   "oauth2": {
     "client_id": "",

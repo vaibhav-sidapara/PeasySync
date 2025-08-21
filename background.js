@@ -12,31 +12,41 @@ const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 // ================================
 async function getAuthToken(interactive = true) {
   return new Promise((resolve, reject) => {
-    const url =
-      `${AUTH_URL}?client_id=${CLIENT_ID}` +
-      `&response_type=token` +
-      `&redirect_uri=${encodeURIComponent(REDIRECT_URL)}` +
-      `&scope=${encodeURIComponent(SCOPES.join(" "))}`;
-
-    chrome.identity.launchWebAuthFlow({ url, interactive }, (redirectUrl) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-        return;
-      }
-      if (!redirectUrl) {
-        reject("No redirect URL");
+    chrome.storage.local.get("accessToken", ({ accessToken }) => {
+      if (accessToken) {
+        resolve(accessToken);
         return;
       }
 
-      const m = redirectUrl.match(/access_token=([^&]+)/);
-      if (m && m[1]) {
-        resolve(m[1]);
-      } else {
-        reject("No access token found in redirect");
-      }
+      const url =
+        `${AUTH_URL}?client_id=${CLIENT_ID}` +
+        `&response_type=token` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URL)}` +
+        `&scope=${encodeURIComponent(SCOPES.join(" "))}`;
+
+      chrome.identity.launchWebAuthFlow({ url, interactive }, (redirectUrl) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+          return;
+        }
+        if (!redirectUrl) {
+          reject("No redirect URL");
+          return;
+        }
+
+        const m = redirectUrl.match(/access_token=([^&]+)/);
+        if (m && m[1]) {
+          const token = m[1];
+          chrome.storage.local.set({ accessToken: token });
+          resolve(token);
+        } else {
+          reject("No access token found in redirect");
+        }
+      });
     });
   });
 }
+
 
 // ================================
 // DRIVE HELPERS
@@ -103,8 +113,12 @@ async function uploadBookmarks(bookmarks) {
   const metadata = {
     name: "bookmarks-peasy-sync.json",
     mimeType: "application/json",
-    parents: [folderId],
   };
+
+  // Only include parents for new files
+  if (!fileId) {
+    metadata.parents = [folderId];
+  }
 
   const form = new FormData();
   form.append(
