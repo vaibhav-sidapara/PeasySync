@@ -2,12 +2,14 @@
 
 ![PeasySync](assets/feature-image.jpg)
 
-A simple Chrome/Brave extension to back up and restore your bookmarks using Google Drive.
+![PeasySync Gif](assets/PeasySync.gif)
+
+**A simple Chromium based extension to back up and restore your bookmarks using Google Drive.**
 
 ## Setup
 1. Clone this repo and rename `manifest.json.example` → `manifest.json` 
 2. Load the extension:
-    - Open `brave://extensions` → enable Developer mode → Load unpacked → select this folder.
+    - Open your browser’s extensions page (`chrome://extensions`, `brave://extensions`, or `edge://extensions`) → enable Developer mode → Load unpacked → select this folder.
     - Open Settings → Extenstions → Allow Google login for extension 
 3. Go to [Google Cloud Console](https://console.cloud.google.com/). 
 4. Enable the Google Drive API. 
