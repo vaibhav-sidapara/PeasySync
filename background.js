@@ -4,7 +4,7 @@
 const manifest = chrome.runtime.getManifest();
 const CLIENT_ID = manifest.oauth2.client_id;
 const SCOPES = manifest.oauth2.scopes;
-const REDIRECT_URL = `https://${chrome.runtime.id}.chromiumapp.org`
+const REDIRECT_URL = `https://${chrome.runtime.id}.chromiumapp.org`;
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 
 // ================================
@@ -47,7 +47,6 @@ async function getAuthToken(interactive = true) {
   });
 }
 
-
 // ================================
 // DRIVE HELPERS
 // ================================
@@ -63,62 +62,43 @@ async function driveRequest(path, method = "GET", body, token, params = "") {
       body: body ? JSON.stringify(body) : undefined,
     }
   );
+
+  // Handle expired token
+  if (res.status === 401) {
+    await chrome.storage.local.remove("accessToken");
+    throw new Error("Unauthorized. Please try again.");
+  }
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error("Drive API request failed: " + err);
+  }
+
   return res.json();
 }
 
-async function getOrCreateBackupFolder(token) {
-  const search = await driveRequest(
-    "files",
-    "GET",
-    null,
-    token,
-    `?q=name='Backup' and mimeType='application/vnd.google-apps.folder' and trashed=false`
-  );
-
-  if (search.files && search.files.length > 0) {
-    return search.files[0].id;
-  }
-
-  const create = await driveRequest(
-    "files",
-    "POST",
-    {
-      name: "Backup",
-      mimeType: "application/vnd.google-apps.folder",
-    },
-    token
-  );
-
-  return create.id;
-}
 
 // ================================
 // UPLOAD BOOKMARKS
 // ================================
 async function uploadBookmarks(bookmarks) {
   const token = await getAuthToken();
-  const folderId = await getOrCreateBackupFolder(token);
 
+  // Always search for existing file
   const searchRes = await driveRequest(
     "files",
     "GET",
     null,
     token,
-    `?q=name='bookmarks-peasy-sync.json' and '${folderId}' in parents and trashed=false`
+    `?q=name='bookmarks-peasy-sync.json' and trashed=false`
   );
 
-  let fileId =
-    searchRes.files && searchRes.files.length ? searchRes.files[0].id : null;
+  let fileId = searchRes.files && searchRes.files.length ? searchRes.files[0].id : null;
 
   const metadata = {
     name: "bookmarks-peasy-sync.json",
     mimeType: "application/json",
   };
-
-  // Only include parents for new files
-  if (!fileId) {
-    metadata.parents = [folderId];
-  }
 
   const form = new FormData();
   form.append(
@@ -136,32 +116,44 @@ async function uploadBookmarks(bookmarks) {
     ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
     : "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
 
+  const method = fileId ? "PATCH" : "POST";
+
   const uploadRes = await fetch(uploadUrl, {
-    method: fileId ? "PATCH" : "POST",
+    method,
     headers: { Authorization: `Bearer ${token}` },
     body: form,
   });
 
-  return uploadRes.json();
+  if (!uploadRes.ok) {
+    const err = await uploadRes.text();
+    throw new Error("Drive upload failed: " + err);
+  }
+
+  const result = await uploadRes.json();
+
+  // Save fileId for next time
+  if (result.id) {
+    await chrome.storage.local.set({ backupFileId: result.id });
+  }
+
+  return result;
 }
 
-// ================================
-// DOWNLOAD BOOKMARKS
-// ================================
+
 async function downloadBookmarks() {
   const token = await getAuthToken();
-  const folderId = await getOrCreateBackupFolder(token);
 
+  // Always search for the file in Drive
   const searchRes = await driveRequest(
     "files",
     "GET",
     null,
     token,
-    `?q=name='bookmarks-peasy-sync.json' and '${folderId}' in parents and trashed=false`
+    `?q=name='bookmarks-peasy-sync.json' and trashed=false`
   );
 
   if (!searchRes.files || !searchRes.files.length) {
-    throw new Error("No bookmarks-peasy-sync.json found in Drive/backup folder");
+    throw new Error("No bookmarks-peasy-sync.json found in Drive.");
   }
 
   const fileId = searchRes.files[0].id;
@@ -171,18 +163,24 @@ async function downloadBookmarks() {
       headers: { Authorization: `Bearer ${token}` },
     }
   );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error("Drive download failed: " + err);
+  }
+
   return res.json();
 }
+
 
 // ================================
 // RESTORE BOOKMARKS
 // ================================
 async function restoreBookmarks() {
-  const bookmarks = await downloadBookmarks(); // your backup JSON
+  const bookmarks = await downloadBookmarks();
 
-  // Get current root folders
   const tree = await chrome.bookmarks.getTree();
-  const roots = tree[0].children; // [Bookmarks Bar, Other, Mobile]
+  const roots = tree[0].children;
 
   async function clearChildren(folder) {
     if (!folder.children) return;
@@ -197,11 +195,7 @@ async function restoreBookmarks() {
 
   function createNode(node, parentId) {
     if (node.url) {
-      chrome.bookmarks.create({
-        parentId,
-        title: node.title || "",
-        url: node.url,
-      });
+      chrome.bookmarks.create({ parentId, title: node.title || "", url: node.url });
     } else {
       chrome.bookmarks.create({ parentId, title: node.title || "Untitled" }, (folder) => {
         if (node.children) {
@@ -211,14 +205,12 @@ async function restoreBookmarks() {
     }
   }
 
-  // Clear and restore for each main folder
   for (let i = 0; i < roots.length; i++) {
     const root = roots[i];
     const backupRoot = bookmarks[0]?.children?.[i];
     if (!backupRoot) continue;
 
     await clearChildren(root);
-
     if (backupRoot.children) {
       backupRoot.children.forEach((child) => createNode(child, root.id));
     }
@@ -244,7 +236,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "restore") {
     restoreBookmarks()
       .then(() => sendResponse({ success: true }))
-      .catch((e) => sendResponse({ success: false, error: e.toString() }));
+      .catch((e) => {
+        console.log(e.toString())
+        sendResponse({ success: false, error: e.toString() });
+      });
     return true;
   }
 });

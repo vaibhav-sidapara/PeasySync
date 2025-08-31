@@ -15,7 +15,7 @@
 4. Enable the Google Drive API. 
 5. Create OAuth credentials (Web application). 
 6. Add Authorised redirect URIs → `https://EXTENSION-ID.chromiumapp.org`
-7. Add Data Access Scopes → `.../auth/drive.file` and `.../auth/drive.metadata.readonly`
+7. Add Data Access Scopes → `.../auth/drive.file`
 8. Replace the `oauth2.client_id` in `manifest.json` file with your client ID. 
 9. Click the extension icon → Backup or Restore bookmarks.
 

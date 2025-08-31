@@ -5,7 +5,7 @@ document.getElementById("backup").addEventListener("click", () => {
   chrome.runtime.sendMessage({ action: "backup" }, (response) => {
     status.textContent = response?.success
       ? "Backup complete!"
-      : "Backup failed!";
+      : response.error;
   });
 });
 
@@ -14,6 +14,6 @@ document.getElementById("restore").addEventListener("click", () => {
   chrome.runtime.sendMessage({ action: "restore" }, (response) => {
     status.textContent = response?.success
       ? "Restore complete!"
-      : "Restore failed!";
+      : response.error;
   });
 });
