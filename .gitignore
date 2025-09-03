@@ -21,3 +21,6 @@ manifest.json
 # https://packagecontrol.io/packages/sublime-github
 GitHub.sublime-settings
 
+### Build
+build
+

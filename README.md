@@ -6,6 +6,8 @@
 
 **A simple Chromium based extension to back up and restore your bookmarks using Google Drive.**
 
+[Chrome Web Store Link](https://chromewebstore.google.com/detail/peasysync/jfibleojffihephfcijpmhoblamokfik)
+
 ## Setup
 1. Clone this repo and rename `manifest.json.example` → `manifest.json` 
 2. Load the extension:
