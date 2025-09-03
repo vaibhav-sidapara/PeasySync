@@ -22,5 +22,5 @@
 9. Click the extension icon → Backup or Restore bookmarks.
 
 ## Notes
-- Bookmarks are stored in a file called `bookmarks-peasy-sync.json` inside a `Backup` folder on your Google Drive.
+- Bookmarks are stored in a file called `bookmarks-peasy-sync.json` on your Google Drive.
 - Backup overwrites this file, Restore loads from it.
